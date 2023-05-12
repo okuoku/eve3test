@@ -1,0 +1,3 @@
+[submodule "EveApps"]
+	path = EveApps
+	url = https://github.com/Bridgetek/EveApps
