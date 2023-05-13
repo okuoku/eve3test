@@ -18,6 +18,7 @@ include_directories(
 add_executable(sim
     bt8xxemubridge.c
 
+    timeframe.c
     simduino.c
     ${simavr_root}/examples/parts/uart_pty.c
     )
@@ -30,4 +31,4 @@ add_custom_command(TARGET sim POST_BUILD
 
 target_link_libraries(sim
     ${emu_lib}
-    ${simavr_lib} elf)
+    ${simavr_lib} elf winmm)

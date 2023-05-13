@@ -45,6 +45,8 @@
 #include "sim_vcd_file.h"
 
 void bt8xxbridge_connect(struct avr_t* avr);
+uint64_t timeframe_wait_next(uint64_t prev);
+void timeframe_init(void);
 
 uart_pty_t uart_pty;
 avr_t * avr = NULL;
@@ -96,6 +98,8 @@ void avr_special_deinit( avr_t* avr, void * data)
 	uart_pty_stop(&uart_pty);
 }
 
+static uint64_t tick_prev = 0;
+
 int main(int argc, char *argv[])
 {
 	struct avr_flash flash_data;
@@ -105,6 +109,8 @@ int main(int argc, char *argv[])
 	uint32_t freq = 16000000;
 	int debug = 0;
 	int verbose = 0;
+
+        uint64_t curtick, nexttick;
 
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i] + strlen(argv[i]) - 4, ".hex"))
@@ -160,16 +166,26 @@ int main(int argc, char *argv[])
 		avr_gdb_init(avr);
 	}
 
+        timeframe_init();
         /* Connect emu */
         bt8xxbridge_connect(avr);
 
 	uart_pty_init(avr, &uart_pty);
 	uart_pty_connect(&uart_pty, '0');
 
-	while (1) {
-		int state = avr_run(avr);
-		if ( state == cpu_Done || state == cpu_Crashed)
-			break;
-	}
-
+        curtick = 0;
+        while (1) {
+            int state = avr_run(avr);
+            if ( state == cpu_Done || state == cpu_Crashed)
+                break;
+            nexttick = avr->cycle / (320*1000);
+            if(curtick != nexttick){
+                uint64_t next;
+                next = timeframe_wait_next(tick_prev);
+                printf("Frame: %lld => %lld (@ %ld)\n", tick_prev, next,
+                       avr->cycle);
+                tick_prev = next;
+                curtick = nexttick;
+            }
+        }
 }
